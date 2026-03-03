@@ -234,3 +234,5 @@ __marimo__/
 
 /data/*
 /models/*
+/.lake
+/lean_proj/*
