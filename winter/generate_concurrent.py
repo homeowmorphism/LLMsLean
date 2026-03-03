@@ -100,7 +100,7 @@ def process_single_theorem(theorem, model_name, temp, amend):
             theorem["output_tokens"].append(response.usage_metadata["output_tokens"])
     except Exception as e:
         print(e)
-        if "ThrottlingException" in e:
+        if e.response['Error']['Code'] == 'ThrottlingException':
             return -1
         theorem["responses"].append("ERROR: Generation failed")
     
@@ -135,7 +135,7 @@ def generate_concurrent(input, output, model, temp, amend, workers=4):
             
             count += 1
             if count % 1 == 0:
-                with jsl.open(output, mode="w") as writer:
+                with jsl.open("../data/temp.jsonl", mode="w") as writer:
                     writer.write_all([r for r in results if r is not None])
 
     with jsl.open(output, mode="w") as writer:
