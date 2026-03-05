@@ -1,5 +1,6 @@
 from langchain.chat_models import init_chat_model, BaseChatModel
 from langchain_community.llms import VLLM
+from langchain_google_genai import ChatGoogleGenerativeAI
 import torch;
 
 _MODELS = {
@@ -7,15 +8,18 @@ _MODELS = {
   "opus": "us.anthropic.claude-opus-4-5-20251101-v1:0",
   "gpt": "gpt-5.1",
   "gemini": "google_genai:gemini-3-flash-preview",
+  "gemini_pro": "google_genai:gemini-3.1-pro-preview",
   "gemini_lite": "google_genai:gemini-3.1-flash-lite-preview",
   "kimina": "AI-MO/Kimina-Prover-72B",
   "deepseek": "deepseek-ai/DeepSeek-Prover-V2-7B",
   "goedel": "Goedel-LM/Goedel-Prover-V2-32B",
-  "qwen" : "qwen.qwen3-32b-v1:0"
+  "qwen" : "qwen.qwen3-32b-v1:0",
+  "gpt_oss" : "openai.gpt-oss-120b-1:0"
 }
 
 _LOCAL_MODELS = {"kimina", "deepseek", "goedel"}
-_BEDROCK_MODELS = {"sonnet", "opus","qwen"}
+_BEDROCK_MODELS = {"sonnet", "opus","qwen", "gpt_oss"}
+_LIMITED_MODELS = {"gemini_pro"}
 
 _MAX_TOKENS = 4096
 
@@ -41,6 +45,8 @@ def init_model(model_name: str, temp: float) -> BaseChatModel:
             print(e)
     elif model_name in _BEDROCK_MODELS:  # bedrock models
         llm = init_chat_model(model_id, temperature=temp, model_provider="bedrock_converse")
+    elif model_name in _LIMITED_MODELS:
+        llm = init_chat_model(model_id, temperature = temp, thinking_budget = 4000)
     else:  # not bedrock models
         llm = init_chat_model(model_id, temperature=temp)
 
