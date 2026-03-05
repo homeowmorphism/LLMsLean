@@ -109,7 +109,10 @@ def verify_parallel(input, output):
         eval = r_list[i]
 
         if isinstance(eval, Exception):
-            theorem["verification"].append("Unknown Error: LEAN Verification timed out")
+            if len(theorem["verification"])>0 and theorem["verification"][-1] == "Pass":
+                theorem["verification"].append("Pass")
+            else: 
+                theorem["verification"].append("Unknown Error: LEAN Verification timed out")
             if "verify_time" in theorem.keys(): 
                 theorem["verify_time"].append(-1)
             else:

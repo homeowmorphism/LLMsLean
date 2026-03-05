@@ -22,11 +22,13 @@ def generate_loop(data, model, amend, workers=4, loops=1, repair=False):
         sub = 1
         generate_concurrent(data, output, model, _TEMP, False, workers)
         verify_parallel(output, output)
+        print(check_accuracy_all(output))
     for i in range(loops - sub):
         r = generate_concurrent(output, output, model, _TEMP, amend, workers)
         if r == -1:
             return output
         verify_parallel(output, output)
+        print(check_accuracy_all(output))
     print(check_accuracy_all(output))
     return output
     
