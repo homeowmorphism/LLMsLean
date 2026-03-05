@@ -8,11 +8,12 @@ _MODELS = {
   "gemini": "google_genai:gemini-3-pro-preview",
   "kimina": "AI-MO/Kimina-Prover-72B",
   "deepseek": "deepseek-ai/DeepSeek-Prover-V2-7B",
-  "goedel": "Goedel-LM/Goedel-Prover-V2-32B"
+  "goedel": "Goedel-LM/Goedel-Prover-V2-32B",
+  "qwen" : "us.qwen.qwen3-32b-v1:0"
 }
 
 _LOCAL_MODELS = {"kimina", "deepseek", "goedel"}
-_BEDROCK_MODELS = {"sonnet", "opus"}
+_BEDROCK_MODELS = {"sonnet", "opus","qwen"}
 
 _MAX_TOKENS = 4096
 
