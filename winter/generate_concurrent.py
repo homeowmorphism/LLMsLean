@@ -69,9 +69,10 @@ def process_single_theorem(theorem, model_name, temp, amend):
     if 'responses' not in theorem.keys():
         theorem["responses"] = []    
 
-    if "Pass" in theorem.get("verification", [""])[-1]:
-        theorem.setdefault("responses", []).append(theorem["responses"][-1])
-        return theorem
+    for x in theorem.get("verification", [""]):
+        if "Pass" in x:
+            theorem.setdefault("responses", []).append(theorem["responses"][-1])
+            return theorem
 
     prompt = PROMPT_STEM + theorem["header"]+ "\n" + theorem["formal_statement"]
     if amend:
@@ -130,6 +131,7 @@ def generate_concurrent(input, output, model, temp, amend, workers=4):
                     print(f"Generation is being throttled, please wait and try again soon. Your attempt made it through {len(theorems[0]["responses"])} iterations\n To continue run: python run.py --repair {model} {model} [dataset] [workers] [loops remaining]")
                 else:
                     print(f"Generation is being throttled, please wait and try again soon. Your attempt made it through 0 iterations\n To continue run: python run.py --repair {model} {model} [dataset] [workers] [loops remaining]")
+                
                 return -1
             results[idx] = result
             
