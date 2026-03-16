@@ -15,7 +15,7 @@ def generate_loop(data, model, amend, workers=4, loops=1, repair=False):
     load_dotenv("../.env")
     at = f"pass@{loops}"
     if amend:
-        at = "amend"
+        at = f"amend@{loops}"
     sub = 0
     output = data.split(".jsonl")[0] + f"_{model}_{at}.jsonl"
     if not repair:
@@ -29,7 +29,7 @@ def generate_loop(data, model, amend, workers=4, loops=1, repair=False):
             return output
         verify_parallel(output, output)
         print(check_accuracy_all(output))
-    print(check_accuracy_all(output))
+    print(output)
     return output
     
 

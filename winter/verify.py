@@ -155,6 +155,7 @@ def check_accuracy(input):
 def check_accuracy_all(input):
     theorems = list(jsl.open(input))
     num = []
+    num1=[]
     sum = len(theorems)
     for x in theorems[-1]['verification']:
         num.append(0)
@@ -165,26 +166,31 @@ def check_accuracy_all(input):
             for i, x in enumerate(theorem['verification']):
                 if "Pass" in x: num[i] +=1
     for x in num:
-        x=x/sum
-    return f"{num}/{sum}"
+        num1.append(x*100/sum)
+    return num1
 
-def plot_time(input):
-    theorems = list(jsl.open(input))
-    gt = []
-    vt = []
-    for x in theorems:
-        gt.append((x["input_tokens"])[-1])
-        vt.append((x["output_tokens"])[-1])
-    fig, ax = plt.subplots(2)
-    ax[0].hist(gt)
-    ax[1].hist(vt)
+def plot_time(input1, input2):
+    gt = check_accuracy_all(input1)
+    vt = check_accuracy_all(input2)
+    leng = []
+    print(gt)
+    for x in range(len(gt)):
+        leng.append(x+1)
+    plt.title("Gemini 3.1 Flash Lite Accuracy on Minif2f ")
+    plt.plot(leng,gt, label="Refine@k")
+    plt.plot(leng, vt, label="Pass@k")
+    plt.ylabel("Accuracy % on Minif2f")
+    plt.xlabel("k")
+    plt.ylim([0,100])
+    plt.legend()
+
     plt.show()   
     
 
 
 if __name__ == "__main__":
-    #verify_parallel("../data/minif2f_opus_amend.jsonl","../data/minif2f_opus_amend.jsonl")
-    #print(check_accuracy_all("../data/minif2f_opus_amend.jsonl"))
-    #plot_time("../data/minif2f_opus_amend.jsonl")
+    #verify_parallel("../data/miniCTX_opus_amend@8.jsonl","../data/minif2f_opus_amend.jsonl")
+    print(check_accuracy_all("../data/test_data/minif2f_gpt_oss_pass@4.jsonl"))
+    #plot_time("../data/Final Tests/miniCTX_opus_amend.jsonl","../data/Final Tests/miniCTX_opus_pass@8.jsonl")
     #print(check_accuracy_all("../data/mini_miniCTX_test.jsonl"))
     pass

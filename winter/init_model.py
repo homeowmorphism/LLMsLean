@@ -19,7 +19,7 @@ _MODELS = {
 
 _LOCAL_MODELS = {"kimina", "deepseek", "goedel"}
 _BEDROCK_MODELS = {"sonnet", "opus","qwen", "gpt_oss"}
-_LIMITED_MODELS = {"gemini_pro"}
+_LIMITED_MODELS = {"gemini_pro", "gemini"}
 
 _MAX_TOKENS = 4096
 
