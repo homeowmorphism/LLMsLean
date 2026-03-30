@@ -6,6 +6,7 @@ import jsonlines as jsl
 from lean_interact.interface import LeanError
 import matplotlib.pyplot as plt
 import re
+import math
 
 def verify_single_result(response, project):
     server = None
@@ -35,41 +36,6 @@ def verify_single_result(response, project):
         if server:
             server.kill()    
         
-def verify(input, output):
-    project = None
-    theorems = list(jsl.open(input))
-    try:
-        print("Setting Up Temp Project")
-        project = TempRequireProject(lean_version="v4.7.0", require="mathlib")
-    except Exception as e:
-        print(f"Exception: {e}")
-        return
-
-    count = 0
-
-    for theorem in tqdm(theorems, desc="Verifying Results"):
-        count+=1
-        if not "verification" in theorem.keys():
-            theorem['verification'] = []
-
-        if len(theorem['verification']) >= len(theorem['responses']): 
-            continue
-
-        try:
-            theorem['verification'].append(verify_single_result(theorem["responses"][-1], project))
-        except Exception as e:
-            theorem['verification'].append(f"Verification Failed: {e}")
-        
-        if count % 30 == 0:
-            with jsl.open(output, mode="w") as writer:
-                writer.write_all(theorems)
-
-    with jsl.open(output, mode="w") as writer:
-        writer.write_all(theorems)
-    
-    return theorems
-
-
 def verify_parallel(input, output):
     project = None
     theorems = list(jsl.open(input))
@@ -85,8 +51,7 @@ def verify_parallel(input, output):
         response = theorem["responses"][-1]
         header = theorem["header"]
         clean_response = response.replace("lean\n", "").strip()
-        full_code = header +"\n set_option trace.profiler true \n" + clean_response
-        options = [(["trace", "profiler"], True)]
+        full_code = header + clean_response
         command = Command(cmd=full_code)
         t_list.append(command)
     try:
@@ -101,7 +66,7 @@ def verify_parallel(input, output):
     except Exception as e:
         r_list =[]
         print(e)
-    ct = 0
+    
     for i, theorem in enumerate(theorems):
         if not "verification" in theorem.keys():
             theorem['verification'] = []
@@ -109,7 +74,7 @@ def verify_parallel(input, output):
         eval = r_list[i]
 
         if isinstance(eval, Exception):
-            if len(theorem["verification"])>0 and theorem["verification"][-1] == "Pass":
+            if "amend" in output and  len(theorem["verification"])>0 and theorem["verification"][-1] == "Pass":
                 theorem["verification"].append("Pass")
             else: 
                 theorem["verification"].append("Unknown Error: LEAN Verification timed out")
@@ -121,7 +86,6 @@ def verify_parallel(input, output):
         
         if not isinstance(eval, LeanError) and eval.lean_code_is_valid() and len(eval.sorries) == 0:
             theorem["verification"].append("Pass")
-            ct+=1
         else:
             errors = ""
             for error in eval.get_errors(): 
@@ -141,56 +105,37 @@ def verify_parallel(input, output):
         writer.write_all(theorems)
 
 
-def check_accuracy(input):
-    theorems = list(jsl.open(input))
-    num = 0
-    sum = len(theorems)
-    for x in theorems:
-        if 'verification' not in x.keys():
-            sum-=1
-        else:
-            if "Pass" in x["verification"][-1]: num+=1
-    return f"{num}/{sum} Passed"
-
 def check_accuracy_all(input):
     theorems = list(jsl.open(input))
-    num = []
-    num1=[]
-    sum = len(theorems)
-    for x in theorems[-1]['verification']:
-        num.append(0)
-    for theorem in theorems:
-        if 'verification' not in theorem.keys():
-            sum-=1
-        else:
-            for i, x in enumerate(theorem['verification']):
-                if "Pass" in x: num[i] +=1
-    for x in num:
-        num1.append(x*100/sum)
-    return num1
+    if not "pass" in input:
+        num = []
+        num1=[]
+        tot = len(theorems)
+        for x in theorems[-1]['verification']:
+            num.append(0)
+        for theorem in theorems:
+            if 'verification' not in theorem.keys():
+                tot-=1
+            else:
+                for i, x in enumerate(theorem['verification']):
+                    if "Pass" in x: num[i] +=1
+        for x in num:
+            num1.append(x*100/tot)
+        return num1
+    else:
+        n = len(theorems[0]["verification"])
+        tot = [0 for x in range(n)]
+        for theorem in theorems:
+            c = sum([int(verif == "Pass") for verif in theorem["verification"]])
+            for k in range(1,n+1):
+                tot[k-1]+= 1 - math.comb(n-c, k)/math.comb(n, k) 
+        tot = [x/len(theorems) for x in tot]
+        return tot
 
-def plot_time(input1, input2):
-    gt = check_accuracy_all(input1)
-    vt = check_accuracy_all(input2)
-    leng = []
-    print(gt)
-    for x in range(len(gt)):
-        leng.append(x+1)
-    plt.title("Gemini 3.1 Flash Lite Accuracy on Minif2f ")
-    plt.plot(leng,gt, label="Refine@k")
-    plt.plot(leng, vt, label="Pass@k")
-    plt.ylabel("Accuracy % on Minif2f")
-    plt.xlabel("k")
-    plt.ylim([0,100])
-    plt.legend()
-
-    plt.show()   
-    
 
 
 if __name__ == "__main__":
     #verify_parallel("../data/miniCTX_opus_amend@8.jsonl","../data/minif2f_opus_amend.jsonl")
-    print(check_accuracy_all("../data/test_data/minif2f_gpt_oss_pass@4.jsonl"))
-    #plot_time("../data/Final Tests/miniCTX_opus_amend.jsonl","../data/Final Tests/miniCTX_opus_pass@8.jsonl")
+    print(check_accuracy_all("../data/Final Tests/minif2f_gemini_lite_pass@4.jsonl"))
     #print(check_accuracy_all("../data/mini_miniCTX_test.jsonl"))
     pass

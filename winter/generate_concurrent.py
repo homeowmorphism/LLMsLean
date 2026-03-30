@@ -73,10 +73,11 @@ def process_single_theorem(theorem, model_name, temp, amend):
     if 'responses' not in theorem.keys():
         theorem["responses"] = []    
 
-    for x in theorem.get("verification", [""]):
-        if "Pass" in x:
-            theorem.setdefault("responses", []).append(theorem["responses"][-1])
-            return theorem
+    if amend:
+        for x in theorem.get("verification", [""]):
+            if "Pass" in x:
+                theorem.setdefault("responses", []).append(theorem["responses"][-1])
+                return theorem
 
     prompt = PROMPT_STEM + theorem["header"]+ "\n" + theorem["formal_statement"]
     if amend:
