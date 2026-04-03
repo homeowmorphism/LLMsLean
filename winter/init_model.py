@@ -14,7 +14,8 @@ _MODELS = {
   "deepseek": "deepseek-ai/DeepSeek-Prover-V2-7B",
   "goedel": "Goedel-LM/Goedel-Prover-V2-32B",
   "qwen" : "qwen.qwen3-32b-v1:0",
-  "gpt_oss" : "openai.gpt-oss-120b-1:0"
+  "gpt_oss" : "openai.gpt-oss-120b-1:0",
+  "leanstral" : "mistralai:labs-leanstral-2603"
 }
 
 _LOCAL_MODELS = {"kimina", "deepseek", "goedel"}
