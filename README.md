@@ -8,14 +8,16 @@ Within the past few years, the ability of large language models (LLMs) to genera
 
 ## Instructions
 
-### Dependencies
+### Setup
 python 3.12\
-```pip install requirements.txt```
+```pip install requirements.txt```\
+```mkdir .env```\
+```mkdir data/Final Tests```
 ### Usage
 All relevant files are intended to be run from ```/winter```
 #### To run on a smaller dataset of size x:
 ```python3 utils/gen_small_dataset.py [x]```\
-```python3 run.py [model] [True/False (refine@k/pass@k)] [workers] [loops] ```\
+```python3 run.py [model] [True/False (refine@k/pass@k)] [workers] [loops] ```
 
 #### Parameters
 [model]: Model to evaluate. See Supported Models.\
