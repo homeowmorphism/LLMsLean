@@ -2,9 +2,49 @@
 
 A [UW Math AI Lab](https://github.com/uw-math-ai) project.
 
-Within the past few years, the ability of Large Language Models (LLMs) to generate formal mathematical proofs has improved drastically. We will provide a comparison of various LLMs' effectiveness in producing a successful proof in the Lean 4 theorem prover on both Mini-F2F and Mini-CTX datasets. Specifically, we will compare three general purpose LLMs: Gemini 3-pro, Chat GPT 5.2, Claude 4.5 Opus, and three specialized LLMs: Kimina-72B, Goedel-Prover-32B, Deepseek-Prover-V2-7B. We plan to test each models effectiveness at Pass@4, and multi turn proof generation with $k=4$. Finally, we will analyze the cost, the number of tokens and the latency time to provide the optimal model given the available resources of the users. 
+Within the past few years, the ability of large language models (LLMs) to generate formal mathematical proofs has improved drastically. We will provide a comparison of various LLMs' effectiveness in producing a successful proof in the Lean 4 theorem prover on both Mini-F2F and Mini-CTX datasets. Specifically, we will compare three general purpose LLMs: Gemini 3-pro, Chat GPT 5.2, Claude 4.5 Opus, and three specialized LLMs: Kimina-72B, Goedel-Prover-32B, Deepseek-Prover-V2-7B. We plan to test each models effectiveness at Pass@4, and multi turn proof generation with $k=4$. Finally, we will analyze the cost, the number of tokens and the latency time to provide the optimal model given the available resources of the users. 
 
 [Winter Quarter Poster](https://docs.google.com/presentation/d/1dIf4-OZg-ClmAyEdQqRi9oxUBDifUnVM1fhT3GzvC4A/edit?usp=sharing_)
+
+## Instructions
+
+### Dependencies
+python 3.12\
+```pip install requirements.txt```
+### Usage
+All relevant files are intended to be run from ```/winter```
+#### To run on a smaller dataset of size x:
+```python3 utils/gen_small_dataset.py [x]```\
+```python3 run.py [model] [True/False (refine@k/pass@k)] [workers] [loops] ```\
+
+#### Parameters
+[model]: Model to evaluate. See Supported Models.\
+[True/False (refine@k/pass@k)]: Whether to use refine@k (True) or Pass@k (False)\
+[workers]: Number of workers for parallel model calls (default 4). Increase for faster evaluation, decrease if encountering rate limits.\
+[loops]: The number of iterations (k)
+
+#### To run on a full dataset:
+```python3 run.py --final [model] [True/False (refine@k/pass@k)] [C/F] [workers] [loops] ```
+
+#### Parameters
+[model]: Model to evaluate. See Supported Models.\
+[True/False (refine@k/pass@k)]: Whether to use refine@k (True) or Pass@k (False)\
+[C/F]: Whether to run on miniCTX (C) or minif2f (F)\
+[workers]: Number of workers for parallel model calls (default 4). Increase for faster evaluation, decrease if encountering rate limits.\
+[loops]: The number of iterations (k)
+
+
+### Supported Models
+
+sonnet: Claude Sonnet 4.5\
+opus: Claude Opus 4.5\
+gpt: GPT 5.1\
+gemini: Google Gemini 3-flash-preview\
+gemini_pro: Google Gemini 3.1-pro-preview\
+gemini_lite: Google Gemini 3.1-flash-lie-preview\
+qwen: qwen.qwen3-32b-v1:0\
+gpt_oss: openai.gpt-oss-120b-1:0\
+leanstral: mistralai:labs-leanstral-2603
 
 ## Results
 

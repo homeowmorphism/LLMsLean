@@ -237,7 +237,10 @@ __marimo__/
 /lean_proj/*
 /data/*.jsonl
 /data/Initial Tests
-/data/Final Tests/*
+/data/Final Tests/*.jsonl
+/data/Final Tests/*.png
+!/data/miniCTX.jsonl
+!/data/minif2f.jsonl
 /data/fall
-
+/data/*.png
 /models/*
