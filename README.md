@@ -11,7 +11,6 @@ Within the past few years, the ability of large language models (LLMs) to genera
 ### Setup
 python 3.12\
 ```pip install requirements.txt```\
-```mkdir .env```\
 ```mkdir data/Final Tests```
 ### Usage
 All relevant files are intended to be run from ```/winter```
