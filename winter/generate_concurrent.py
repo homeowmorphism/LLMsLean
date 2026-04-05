@@ -13,20 +13,24 @@ import time
 
 # prompt stem for a new lean proof
 PROMPT_STEM = """
-        You are an expert in the LEAN 4 theorem prover. Your goal is to generate a correct, formalized proof in LEAN 4 for the provided theorem within the provided context. 
-        You may explain your reasoning concisely but output the FULL, COMPLETE formalzed proof at the END of your response with **EXACTLY** the prefix: 'FINAL```', and the suffix '```'. 
-        Assume that all of Mathlib is imported. **DO NOT** provide your own import statements. **DO NOT** put anything except valid lean in your final proof. IMMEDIATELY stop after appending the suffix.
+        You are an expert in the LEAN 4 theorem prover. Your goal is to generate a correct, formalized proof in LEAN 4 for the provided theorem within the provided context.
+        You may explain your reasoning concisely but output the FULL, COMPLETE formalized proof at the END of your response in a fenced code block with the prefix FINAL — for example: FINAL```lean ... ```.
+        You may include a language tag such as 'lean' or 'lean4' after the opening backticks.
+        Assume that all of Mathlib is imported. **DO NOT** provide your own import statements. **DO NOT** put anything except valid lean in your final proof. IMMEDIATELY stop after appending the closing ```.
         Your theorem is: """
 
 # prompt stem for an amend
 AMEND_STEM = """
-        You are an expert in the LEAN 4 theorem prover. Your goal is to amend an incorrect formalized proof into a correct, formalized proof. 
-        You may explain your reasoning but output the full, complete formalzed proof at the end of your response with the prefix: FINAL```, and the suffix ```. 
+        You are an expert in the LEAN 4 theorem prover. Your goal is to amend an incorrect formalized proof into a correct, formalized proof.
+        You may explain your reasoning but output the full, complete formalized proof at the end of your response in a fenced code block with the prefix FINAL — for example: FINAL```lean ... ```.
+        You may include a language tag such as 'lean' or 'lean4' after the opening backticks.
         Assume that all of Mathlib is imported. Do not provide your own import statements. """
 
-# regex for LLM final lean proof output
-OUT_REGEX = r"FINAL`+([\S\s]+?)`+"
-BACKUP_REGEX = r"theorem([\S\s]+?)`+"
+# Extraction patterns tried in order (see cleanup())
+_RE_FINAL     = re.compile(r"FINAL`{1,6}(?:lean4?|LEAN4?)?[ \t]*\n?([\S\s]+?)`{1,6}", re.IGNORECASE)
+_RE_LEAN_TAG  = re.compile(r"```(?:lean4?|LEAN4?)\s*([\S\s]+?)```")
+_RE_ANY_BLOCK = re.compile(r"```\w*\s*([\S\s]+?)```")
+_RE_BARE      = re.compile(r"(?:theorem|lemma)\b[\S\s]+")
 
 thread_local = threading.local()
 
@@ -36,28 +40,44 @@ def get_model(model_name, temp):
         thread_local.model = init_model(model_name, temp)
     return thread_local.model
 
-def get_max_match(response, reg):
-    snippets = re.findall(reg, response)
-    largest = ""
-    for snip in snippets:
-        if len(snip) > len(largest): 
-            largest = snip
-
-    return largest
+def _trim_to_theorem(snippet):
+    """Strip any preamble before the first 'theorem' or 'lemma' keyword."""
+    m = re.search(r"\b(?:theorem|lemma)\b", snippet)
+    return snippet[m.start():].strip() if m else snippet.strip()
 
 def cleanup(response):
-    largest = get_max_match(response, OUT_REGEX)
-    
-    try:  # try remove junk before the theorem statement
-        largest = "theorem" + largest.split("theorem")[1]
-    except:  # if this fails, then use the safer regex to try and recover
-        res = get_max_match(response, BACKUP_REGEX)
-        if res:
-            largest = "theorem" + res
-        else:
-            largest = response
+    """
+    Extract a Lean 4 proof from a model response using a tiered fallback strategy:
+      1. Explicit FINAL``` marker (as prompted), with optional lean/lean4 language tag.
+      2. Fenced code block with a lean/lean4 language tag.
+      3. Any fenced code block that contains a theorem/lemma keyword.
+      4. Bare theorem/lemma keyword in plain text.
+    Falls back to the raw response if nothing structured is found.
+    """
+    # Strategy 1: explicit FINAL marker — trust it regardless of content
+    matches = _RE_FINAL.findall(response)
+    if matches:
+        return _trim_to_theorem(max(matches, key=len))
 
-    return largest
+    # Strategy 2: ```lean / ```lean4 block — accept if it contains a proof keyword
+    matches = _RE_LEAN_TAG.findall(response)
+    if matches:
+        candidate = _trim_to_theorem(max(matches, key=len))
+        if re.search(r"\b(?:theorem|lemma)\b", candidate):
+            return candidate
+
+    # Strategy 3: any fenced code block containing a theorem/lemma
+    for m in _RE_ANY_BLOCK.finditer(response):
+        if re.search(r"\b(?:theorem|lemma)\b", m.group(1)):
+            return _trim_to_theorem(m.group(1))
+
+    # Strategy 4: bare theorem/lemma keyword in plain text
+    m = _RE_BARE.search(response)
+    if m:
+        return m.group(0).strip()
+
+    # Give up — return raw response and let verification report the error
+    return response
 
 @observe
 def generation_started():
@@ -106,8 +126,14 @@ def process_single_theorem(theorem, model_name, temp, amend):
             theorem["output_tokens"].append(response.usage_metadata["output_tokens"])
     except Exception as e:
         print(e)
-        if e.response['Error']['Code'] == 'ThrottlingException':
-            return -1
+        # AWS Bedrock throttling: signal the caller to abort and retry later.
+        # e.response is a dict for boto3 exceptions but an httpx.Response object
+        # for other providers, so guard with a try/except rather than hasattr alone.
+        try:
+            if e.response.get('Error', {}).get('Code') == 'ThrottlingException':
+                return -1
+        except AttributeError:
+            pass
         theorem["responses"].append("ERROR: Generation failed")
     
     return theorem
