@@ -123,15 +123,14 @@ def check_accuracy_all(input):
             num1.append(x*100/tot)
         return num1
     else:
-        n = len(theorems[0]["verification"])
-        tot = [0 for x in range(n)]
+        n = len(theorems[0]["verification"])  # assume n is consistent for all theorems
+        tot = [0] * n  # tot[k - 1] = pass@k for k from 1 to n
         for theorem in theorems:
-            c = sum([int(verif == "Pass") for verif in theorem["verification"]])
-            for k in range(1,n+1):
-                tot[k-1]+= 1 - math.comb(n-c, k)/math.comb(n, k) 
-        tot = [x/len(theorems) for x in tot]
+            c = theorem["verification"].count("Pass")  # count num correct
+            for k in range(1, n + 1):
+                tot[k - 1] += 1 - math.comb(n - c, k)/math.comb(n, k)
+        tot = [x / len(theorems) for x in tot]  # convert to avgs
         return tot
-
 
 
 if __name__ == "__main__":
