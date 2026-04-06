@@ -1,5 +1,4 @@
-from tqdm import tqdm
-from lean_interact import LeanREPLConfig, Command, AutoLeanServer
+from lean_interact import LeanREPLConfig, Command
 from lean_interact.pool import LeanServerPool
 from lean_interact.project import TempRequireProject
 import jsonlines as jsl
@@ -7,31 +6,6 @@ from lean_interact.interface import LeanError
 import re
 import math
 import os
-
-
-def verify_single_result(response, project):
-    server = None
-    try:
-        config = LeanREPLConfig(project=project)
-        server = AutoLeanServer(config)
-
-        if "ERROR: Generation failed" in response:
-            return "Generation failed, unable to verify"
-
-        full_code = f"import Mathlib\n\n{response}"
-        result = server.run(Command(cmd=full_code), timeout=20)
-        if not isinstance(result, LeanError) and result.lean_code_is_valid() and len(result.sorries) == 0:
-            return "Pass"
-        errors = "; ".join(str(e) for e in result.get_errors())
-        return f"Fail: {errors}"
-    except TimeoutError:
-        return "Unknown Error: LEAN Verification timed out"
-    except Exception as e:
-        return f"Verification Failed: {e}"
-    finally:
-        if server:
-            server.kill()
-
 
 def verify_parallel(input, output):
     theorems = list(jsl.open(input))
