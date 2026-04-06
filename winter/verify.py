@@ -44,7 +44,7 @@ def verify_parallel(input, output):
 
     t_list = []
     for theorem in theorems:
-        clean_response = theorem["responses"][-1].replace("lean\n", "").strip()
+        clean_response = theorem["responses"][-1]
         full_code = theorem["header"] + clean_response
         t_list.append(Command(cmd=full_code))
 
@@ -55,7 +55,7 @@ def verify_parallel(input, output):
         print(e)
 
     try:
-        r_list = pool.run_batch(t_list, show_progress=True, timeout_per_cmd=60)
+        r_list = pool.run_batch(t_list, show_progress=True, timeout_per_cmd=120)
         pool.close()
     except Exception as e:
         r_list = []
@@ -64,6 +64,23 @@ def verify_parallel(input, output):
     for i, theorem in enumerate(theorems):
         if "verification" not in theorem:
             theorem["verification"] = []
+
+        # filter out generation failures: empty string, generation fail, sorry
+        raw_response = theorem["responses"][-1]
+        clean_response = raw_response.strip()
+        if not clean_response or "ERROR:" in raw_response or "sorry" in clean_response or "admit" in clean_response:
+            if "amend" in output and len(theorem["verification"]) > 0 and theorem["verification"][-1] == "Pass":
+                theorem["verification"].append("Pass")
+            else:
+                if "sorry" in clean_response or "admit" in clean_response:
+                    theorem["verification"].append("Fail: Proof contains sorry/admit")
+                elif not clean_response:
+                    theorem["verification"].append("Fail: Empty string")
+                elif "ERROR:" in raw_response:
+                    theorem["verification"].append("Fail: Generation failed")
+            
+            theorem.setdefault("verify_time", []).append(-1)
+            continue
 
         result = r_list[i]
 
