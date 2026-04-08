@@ -99,7 +99,7 @@ def process_single_theorem(theorem, model_name, temp, amend):
                 theorem.setdefault("responses", []).append(theorem["responses"][-1])
                 return theorem
 
-    prompt = PROMPT_STEM + theorem["header"]+ "\n" + theorem["formal_statement"]
+    prompt = PROMPT_STEM + theorem["header"] + "\n" + theorem["formal_statement"]
     if amend:
         prompt = AMEND_STEM + f"""
         The incorrect proof is: {theorem["responses"][-1]}

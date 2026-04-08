@@ -9,6 +9,26 @@ import math
 import os
 
 
+def build_full_code(theorem):
+    """
+    Construct the Lean code to verify for a given theorem entry.
+
+    Uses the dataset's formal_statement as the theorem declaration and extracts
+    only the proof body (tactics after ':= by') from the model's response.
+    This prevents a proof of a different theorem from being accepted as correct.
+
+    Falls back to the raw response when formal_statement is absent or the
+    response contains no ':= by' marker.
+    """
+    clean_response = theorem["responses"][-1].replace("lean\n", "").strip()
+    formal_stmt = theorem.get("formal_statement", "")
+    match = re.search(r":=\s*by\b", clean_response)
+    if formal_stmt and match:
+        proof_body = clean_response[match.end():].lstrip("\n")
+        return theorem["header"] + formal_stmt + proof_body
+    return theorem["header"] + clean_response
+
+
 def verify_single_result(response, project):
     server = None
     try:
@@ -44,8 +64,7 @@ def verify_parallel(input, output):
 
     t_list = []
     for theorem in theorems:
-        clean_response = theorem["responses"][-1].replace("lean\n", "").strip()
-        full_code = theorem["header"] + clean_response
+        full_code = build_full_code(theorem)
         t_list.append(Command(cmd=full_code))
 
     try:
