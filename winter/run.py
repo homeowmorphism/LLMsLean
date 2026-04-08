@@ -8,7 +8,7 @@ import os
 
 load_dotenv("../.env")
 
-# Low temperature keeps outputs deterministic / consistent across runs
+# TODO: expirement with temp?
 _TEMP = 0.5
 
 def generate_loop(data, model, amend, workers=4, loops=1, repair=False):

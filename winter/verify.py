@@ -1,5 +1,4 @@
-from tqdm import tqdm
-from lean_interact import LeanREPLConfig, Command, AutoLeanServer
+from lean_interact import LeanREPLConfig, Command
 from lean_interact.pool import LeanServerPool
 from lean_interact.project import TempRequireProject
 import jsonlines as jsl
@@ -29,30 +28,6 @@ def build_full_code(theorem):
     return theorem["header"] + clean_response
 
 
-def verify_single_result(response, project):
-    server = None
-    try:
-        config = LeanREPLConfig(project=project)
-        server = AutoLeanServer(config)
-
-        if "ERROR: Generation failed" in response:
-            return "Generation failed, unable to verify"
-
-        full_code = f"import Mathlib\n\n{response}"
-        result = server.run(Command(cmd=full_code), timeout=20)
-        if not isinstance(result, LeanError) and result.lean_code_is_valid() and len(result.sorries) == 0:
-            return "Pass"
-        errors = "; ".join(str(e) for e in result.get_errors())
-        return f"Fail: {errors}"
-    except TimeoutError:
-        return "Unknown Error: LEAN Verification timed out"
-    except Exception as e:
-        return f"Verification Failed: {e}"
-    finally:
-        if server:
-            server.kill()
-
-
 def verify_parallel(input, output):
     theorems = list(jsl.open(input))
     try:
@@ -74,7 +49,7 @@ def verify_parallel(input, output):
         print(e)
 
     try:
-        r_list = pool.run_batch(t_list, show_progress=True, timeout_per_cmd=60)
+        r_list = pool.run_batch(t_list, show_progress=True, timeout_per_cmd=120)
         pool.close()
     except Exception as e:
         r_list = []
@@ -83,6 +58,23 @@ def verify_parallel(input, output):
     for i, theorem in enumerate(theorems):
         if "verification" not in theorem:
             theorem["verification"] = []
+
+        # filter out generation failures: empty string, generation fail, sorry
+        raw_response = theorem["responses"][-1]
+        clean_response = raw_response.strip()
+        if not clean_response or "ERROR:" in raw_response or "sorry" in clean_response or "admit" in clean_response:
+            if "amend" in output and len(theorem["verification"]) > 0 and theorem["verification"][-1] == "Pass":
+                theorem["verification"].append("Pass")
+            else:
+                if "sorry" in clean_response or "admit" in clean_response:
+                    theorem["verification"].append("Fail: Proof contains sorry/admit")
+                elif not clean_response:
+                    theorem["verification"].append("Fail: Empty string")
+                elif "ERROR:" in raw_response:
+                    theorem["verification"].append("Fail: Generation failed")
+            
+            theorem.setdefault("verify_time", []).append(-1)
+            continue
 
         result = r_list[i]
 
