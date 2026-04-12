@@ -45,7 +45,15 @@ gemini_pro: Google Gemini 3.1-pro-preview\
 gemini_lite: Google Gemini 3.1-flash-lie-preview\
 qwen: qwen.qwen3-32b-v1:0\
 gpt_oss: openai.gpt-oss-120b-1:0\
-leanstral: mistralai:labs-leanstral-2603
+leanstral: mistralai:labs-leanstral-2603\
+gpt_oss: openai/gpt-oss-120b\
+leanstral: mistralai:labs-leanstral-2603\
+nemotron: nvidia/nemotron-3-super-120b-a12b\
+qwen: Qwen/Qwen3.5-397B-A17B\
+deepseek: deepseek-ai/DeepSeek-V3.2\
+glm: zai-org/GLM-5\
+minimax: MiniMaxAI/MiniMax-M2.1\
+kimi: moonshotai/Kimi-K2-Thinking
 
 ## Results
 
