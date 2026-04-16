@@ -1,8 +1,4 @@
 from langchain.chat_models import init_chat_model, BaseChatModel
-from langchain_community.llms import VLLM
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_nebius import ChatNebius
-import torch;
 
 _MODELS = {
   "sonnet": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
@@ -25,38 +21,66 @@ _MODELS = {
 }
 
 _LOCAL_MODELS = {"kimina", "deepseek7b", "goedel"}
-_BEDROCK_MODELS = {"sonnet", "opus","qwen", "gpt_oss"}
+_BEDROCK_MODELS = {"sonnet", "opus"}
 _LIMITED_MODELS = {"gemini_pro", "gemini"}
 _NEBIUS_MODELS = {"nemotron", "qwen", "deepseek", "glm", "minimax", "kimi", "gpt_oss"}
 
 _MAX_TOKENS = 2**15
 
+
+def _init_nebius_model(model_id: str, temp: float) -> BaseChatModel:
+    try:
+        from langchain_nebius import ChatNebius
+    except ImportError as exc:
+        raise ImportError(
+            "Nebius-backed models require `langchain-nebius`. "
+            "Install the package or choose a different provider."
+        ) from exc
+
+    return ChatNebius(model=model_id, temperature=temp, max_tokens=_MAX_TOKENS)
+
+
+def _init_local_model(model_id: str, temp: float) -> BaseChatModel:
+    try:
+        from langchain_community.llms import VLLM
+    except ImportError as exc:
+        raise ImportError(
+            "Local prover models require `langchain-community` with VLLM support."
+        ) from exc
+
+    try:
+        import torch
+    except ImportError as exc:
+        raise ImportError("Local prover models require `torch`.") from exc
+
+    return VLLM(
+        model=model_id,
+        tensor_parallel_size=torch.cuda.device_count(),
+        trust_remote_code=True,
+        download_dir="/gpfs/scrubbed/lean-bench/models/",
+        vllm_kwargs={
+            "gpu_memory_utilization": 0.9,
+        },
+        temperature=temp,
+        max_new_tokens=_MAX_TOKENS,
+        top_p=0.95,
+    )
+
+
 def init_model(model_name: str, temp: float) -> BaseChatModel:
-    assert(model_name in _MODELS)
+    if model_name not in _MODELS:
+        raise ValueError(f"Unsupported model: {model_name}")
+
     model_id = _MODELS[model_name]
 
     if model_name in _NEBIUS_MODELS:  # Nebius Token Factory models
-        llm = ChatNebius(model=model_id, temperature=temp, max_tokens=_MAX_TOKENS)
+        llm = _init_nebius_model(model_id, temp)
     elif model_name in _LOCAL_MODELS:  # local models
-        try:
-            llm = VLLM(
-                model=model_id,
-                tensor_parallel_size=torch.cuda.device_count(),        # Number of GPUs
-                trust_remote_code=True,
-                download_dir="/gpfs/scrubbed/lean-bench/models/",
-                vllm_kwargs={
-                    "gpu_memory_utilization": 0.9,
-                },
-                temperature=temp,
-                max_new_tokens=_MAX_TOKENS,
-                top_p=0.95,
-            )
-        except Exception as e:
-            print(e)
+        llm = _init_local_model(model_id, temp)
     elif model_name in _BEDROCK_MODELS:  # bedrock models
         llm = init_chat_model(model_id, temperature=temp, model_provider="bedrock_converse")
     elif model_name in _LIMITED_MODELS:
-        llm = init_chat_model(model_id, temperature = temp, thinking_budget = 4000)
+        llm = init_chat_model(model_id, temperature=temp, thinking_budget=4000)
     else:  # not bedrock models
         llm = init_chat_model(model_id, temperature=temp)
 

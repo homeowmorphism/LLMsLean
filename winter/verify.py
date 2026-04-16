@@ -44,7 +44,7 @@ def verify_parallel(input, output):
 
     try:
         config = LeanREPLConfig(project=project)
-        pool = LeanServerPool(config)
+        pool = LeanServerPool(config, num_workers=1)
     except Exception as e:
         print(e)
 
@@ -83,6 +83,7 @@ def verify_parallel(input, output):
             if "amend" in output and len(theorem["verification"]) > 0 and theorem["verification"][-1] == "Pass":
                 theorem["verification"].append("Pass")
             else:
+                print(result)
                 theorem["verification"].append("Unknown Error: LEAN Verification timed out")
             theorem.setdefault("verify_time", []).append(-1)
             continue

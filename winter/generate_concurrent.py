@@ -1,11 +1,11 @@
 from langchain.chat_models import init_chat_model
 from dotenv import load_dotenv
 from langchain.agents import create_agent
-from langfuse.langchain import CallbackHandler
+# from langfuse.langchain import CallbackHandler
 import re
 from tqdm import tqdm
 import jsonlines as jsl
-from langfuse import observe
+# from langfuse import observe
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from init_model import init_model
 import threading
@@ -79,12 +79,12 @@ def cleanup(response):
     # Give up — return raw response and let verification report the error
     return response
 
-@observe
+# @observe
 def generation_started():
     return
 
 def process_single_theorem(theorem, model_name, temp, amend):
-    langfuse_handler = CallbackHandler()
+    # langfuse_handler = CallbackHandler()
     
     # initialize the model
     model = get_model(model_name, temp)
@@ -111,7 +111,7 @@ def process_single_theorem(theorem, model_name, temp, amend):
         t = time.perf_counter()
         response = model.invoke(
             prompt,
-            config={"callbacks": [langfuse_handler]}
+            # config={"callbacks": [langfuse_handler]}
         )
         t = time.perf_counter() - t
 

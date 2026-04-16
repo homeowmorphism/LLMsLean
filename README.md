@@ -9,9 +9,40 @@ Within the past few years, the ability of large language models (LLMs) to genera
 ## Instructions
 
 ### Setup
-python 3.12 (with a virtual environment: [Tutorial](https://www.w3schools.com/python/python_virtualenv.asp))\
-```pip install requirements.txt```\
-```mkdir data/Final Tests```
+Use Python 3.12 in a virtual environment.
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+```
+
+Install dependencies:
+
+```bash
+# macOS / CPU-only
+python -m pip install -r requirements-mac.txt
+
+# Linux / cluster environment
+python -m pip install -r requirements.txt
+```
+
+Lean tooling is also required for verification. Make sure `lake --version` works in your shell before running the pipeline.
+
+Create local config:
+
+```bash
+cp .env.example .env
+mkdir -p "data/Final Tests"
+```
+
+Only fill the environment variables needed for the model provider you plan to use.
+
+Optional validation:
+
+```bash
+python -m pytest winter/tests -q
+```
 ### Usage
 All relevant files are intended to be run from ```/winter```
 #### To run on a smaller dataset of size x:
@@ -53,7 +84,12 @@ glm: zai-org/GLM-5\
 minimax: MiniMaxAI/MiniMax-M2.1\
 kimi: moonshotai/Kimi-K2-Thinking
 
+Notes:\
+- `kimina`, `deepseek7b`, and `goedel` are local VLLM models and assume a Linux + CUDA environment.\
+- `sonnet` and `opus` use AWS Bedrock credentials.\
+- `qwen`, `gpt_oss`, `nemotron`, `deepseek`, `glm`, `minimax`, and `kimi` use Nebius credentials.\
+- `gpt` uses OpenAI credentials, and Gemini models use Google credentials.
+
 ## Results
 
 ![Alt text](minif2f_top4_results.png)
-
