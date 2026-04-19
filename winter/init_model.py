@@ -29,7 +29,7 @@ _BEDROCK_MODELS = {"sonnet", "opus","qwen", "gpt_oss"}
 _LIMITED_MODELS = {"gemini_pro", "gemini"}
 _NEBIUS_MODELS = {"nemotron", "qwen", "deepseek", "glm", "minimax", "kimi", "gpt_oss"}
 
-_MAX_TOKENS = 2**15
+_MAX_TOKENS = 2**14
 
 def init_model(model_name: str, temp: float) -> BaseChatModel:
     assert(model_name in _MODELS)

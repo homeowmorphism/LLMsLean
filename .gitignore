@@ -235,12 +235,13 @@ __marimo__/
 /models/*
 /.lake
 /lean_proj/*
-/data/*.jsonl
+/data/*
 /data/Initial Tests
-/data/Final Tests/*.jsonl
-/data/Final Tests/*.png
+!data/Final Tests
+/data/Final Tests/*
 !/data/miniCTX.jsonl
 !/data/minif2f.jsonl
-/data/fall
+!/data/50_miniCTX.jsonl
+!/data/50_minif2f.jsonl
 /data/*.png
 /models/*
