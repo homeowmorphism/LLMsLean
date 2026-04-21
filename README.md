@@ -10,8 +10,10 @@ Within the past few years, the ability of large language models (LLMs) to genera
 
 ### Setup
 python 3.12 (with a virtual environment: [Tutorial](https://www.w3schools.com/python/python_virtualenv.asp))\
-```pip install requirements.txt```\
-```mkdir data/Final Tests```
+```pip install -r requirements.txt```\
+```mkdir data/Final\ Tests```\
+```install-lean```\
+```source ~/.profile```
 ### Usage
 All relevant files are intended to be run from ```/winter```
 #### To run on a smaller dataset of size x:
@@ -42,7 +44,7 @@ opus: Claude Opus 4.5\
 gpt: GPT 5.1\
 gemini: Google Gemini 3-flash-preview\
 gemini_pro: Google Gemini 3.1-pro-preview\
-gemini_lite: Google Gemini 3.1-flash-lie-preview\
+gemini_lite: Google Gemini 3.1-flash-lite-preview\
 qwen: qwen.qwen3-32b-v1:0\
 gpt_oss: openai/gpt-oss-120b\
 leanstral: mistralai:labs-leanstral-2603\
