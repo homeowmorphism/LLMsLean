@@ -59,12 +59,11 @@ def cleanup(response):
     if matches:
         return _trim_to_theorem(max(matches, key=len))
 
-    # Strategy 2: ```lean / ```lean4 block — accept if it contains a proof keyword
+    # Strategy 2: ```lean / ```lean4 block — accept any lean-tagged block
+    # (model may return just a tactic body like `by simp` without restating the theorem)
     matches = _RE_LEAN_TAG.findall(response)
     if matches:
-        candidate = _trim_to_theorem(max(matches, key=len))
-        if re.search(r"\b(?:theorem|lemma)\b", candidate):
-            return candidate
+        return _trim_to_theorem(max(matches, key=len))
 
     # Strategy 3: any fenced code block containing a theorem/lemma
     for m in _RE_ANY_BLOCK.finditer(response):
