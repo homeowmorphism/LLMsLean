@@ -105,7 +105,7 @@ if __name__ == "__main__":
         # --repair: resume an existing output file and archive after finishing
         model, amend, dataset, workers, loops = parse_run_args(argv[1], argv, argc)
         repair = argv[1] == "--repair"
-        output = generate_loop(f"../data/{dataset}.jsonl", model, amend, workers, loops, repair)
+        output = generate_loop(f"../data/50_{dataset}.jsonl", model, amend, workers, loops, repair)
         copy_to_final(output)
 
     else:
