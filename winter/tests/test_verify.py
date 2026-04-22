@@ -3,7 +3,12 @@ from verify import build_full_code
 
 HEADER = "import Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n"
 
-FORMAL_STMT = "theorem target (n : ℕ) : n + 0 = n := by\n"
+# miniCTX style: no ':= by' suffix (build_full_code must add it)
+FORMAL_STMT = "theorem target (n : ℕ) : n + 0 = n"
+# miniF2F style: already includes ':= by\n' (must not be doubled)
+FORMAL_STMT_F2F = "theorem target (n : ℕ) : n + 0 = n := by\n"
+# what build_full_code produces after normalising FORMAL_STMT
+FORMAL_STMT_NORMALIZED = FORMAL_STMT + " := by\n"
 
 
 def make_theorem(response, formal_statement=FORMAL_STMT, header=HEADER):
@@ -31,10 +36,10 @@ def test_proof_body_is_preserved():
 
 
 def test_correct_structure():
-    """Full code = header + formal_statement + proof body (no duplication of ':= by')."""
+    """Full code = header + normalised formal_statement + proof body."""
     response = "theorem unrelated : True := by\n  trivial"
     result = build_full_code(make_theorem(response))
-    assert result == HEADER + FORMAL_STMT + "  trivial"
+    assert result == HEADER + FORMAL_STMT_NORMALIZED + "  trivial"
 
 
 # ---------------------------------------------------------------------------
@@ -46,14 +51,13 @@ def test_multiline_proof_body():
     result = build_full_code(make_theorem(response))
     assert "constructor" in result
     assert "trivial" in result
-    assert result.startswith(HEADER + FORMAL_STMT)
+    assert result.startswith(HEADER + FORMAL_STMT_NORMALIZED)
 
 
 def test_leading_newlines_stripped_from_proof_body():
     """Extra newlines between ':= by' and the first tactic are collapsed."""
     response = "theorem foo : True := by\n\n\n  trivial"
     result = build_full_code(make_theorem(response))
-    # formal_stmt already ends with '\n', so there should be no double blank line
     assert "\n\n\n" not in result
     assert "trivial" in result
 
@@ -118,21 +122,41 @@ def test_custom_header():
 
 
 # ---------------------------------------------------------------------------
-# New fix: response starts with bare 'by' (no ':= by' preamble)
+# miniCTX vs miniF2F normalisation
+# ---------------------------------------------------------------------------
+
+def test_minif2f_formal_stmt_not_doubled():
+    """miniF2F formal_statement already ends with ':= by\\n' — must not be appended again."""
+    response = "theorem unrelated : True := by\n  trivial"
+    result = build_full_code({"header": HEADER, "formal_statement": FORMAL_STMT_F2F, "responses": [response]})
+    assert result == HEADER + FORMAL_STMT_F2F + "  trivial"
+    assert ":= by\n:= by" not in result
+
+
+def test_minictx_formal_stmt_gets_bridge():
+    """miniCTX formal_statement without ':= by' gets ':= by\\n' inserted."""
+    response = "theorem unrelated : True := by\n  trivial"
+    result = build_full_code(make_theorem(response))
+    assert ":= by\n" in result
+    assert result == HEADER + FORMAL_STMT_NORMALIZED + "  trivial"
+
+
+# ---------------------------------------------------------------------------
+# Response starts with bare 'by' (no ':= by' preamble)
 # ---------------------------------------------------------------------------
 
 def test_bare_by_inline():
     """'by simp' response is treated as a proof body — 'by' is stripped."""
     response = "by simp"
     result = build_full_code(make_theorem(response))
-    assert result == HEADER + FORMAL_STMT + " simp"
+    assert result == HEADER + FORMAL_STMT_NORMALIZED + " simp"
 
 
 def test_bare_by_newline():
     """'by\\n  tactic' (model omits the theorem declaration entirely)."""
     response = "by\n  simp\n  omega"
     result = build_full_code(make_theorem(response))
-    assert result == HEADER + FORMAL_STMT + "  simp\n  omega"
+    assert result == HEADER + FORMAL_STMT_NORMALIZED + "  simp\n  omega"
 
 
 def test_bare_by_uses_formal_statement():
@@ -147,14 +171,14 @@ def test_bare_by_markdown_tag_stripped():
     """'lean\\nby simp' — markdown fence prefix is removed before 'by' is detected."""
     response = "lean\nby simp"
     result = build_full_code(make_theorem(response))
-    assert result == HEADER + FORMAL_STMT + " simp"
+    assert result == HEADER + FORMAL_STMT_NORMALIZED + " simp"
 
 
 def test_bare_by_multiline_proof():
     """Multi-tactic proof under a bare 'by' is fully preserved."""
     response = "by\n  constructor\n  · trivial\n  · trivial"
     result = build_full_code(make_theorem(response))
-    assert result == HEADER + FORMAL_STMT + "  constructor\n  · trivial\n  · trivial"
+    assert result == HEADER + FORMAL_STMT_NORMALIZED + "  constructor\n  · trivial\n  · trivial"
 
 
 def test_bare_by_fallback_when_no_formal_statement():
