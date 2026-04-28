@@ -2,9 +2,11 @@ from dotenv import load_dotenv
 from generate_concurrent import generate_concurrent
 from verify import check_accuracy_all
 from verify import verify_parallel
+from summary import summarize_jsonl_by_verify
 from sys import argv
 import shutil
 import os
+import jsonlines as jsl
 
 load_dotenv("../.env")
 
@@ -33,6 +35,15 @@ def generate_loop(data, model, amend, workers=4, loops=1, repair=False):
         generate_concurrent(data, output, model, _TEMP, False, workers)
         verify_parallel(output, output)
         print(check_accuracy_all(output))
+    else: 
+        theorems = list(jsl.open(output))
+        gl=len(theorems[0]['responses'])
+        vl=len(theorems[0]['verification']) 
+        if gl != vl: # check whether it stopped after a verification or generation
+            verify_parallel(output, output)
+            print(check_accuracy_all(output))
+        loops = loops - gl
+
 
     for i in range(loops - sub):
         r = generate_concurrent(output, output, model, _TEMP, amend, workers)
@@ -41,7 +52,9 @@ def generate_loop(data, model, amend, workers=4, loops=1, repair=False):
             return output
         verify_parallel(output, output)
         print(check_accuracy_all(output))
+        print(i+2)
 
+    summarize_jsonl_by_verify(output)
     print(output)
     return output
 
@@ -96,7 +109,7 @@ if __name__ == "__main__":
             print("Error: --verify requires a model argument")
             exit(1)
         model = argv[2]
-        output = f"../data/mini_minif2f_{model}.jsonl"
+        output = f"../data/mini_miniCTX_{model}.jsonl"
         verify_parallel(output, output)
         print(check_accuracy_all(output))
 
@@ -105,7 +118,7 @@ if __name__ == "__main__":
         # --repair: resume an existing output file and archive after finishing
         model, amend, dataset, workers, loops = parse_run_args(argv[1], argv, argc)
         repair = argv[1] == "--repair"
-        output = generate_loop(f"../data/{dataset}.jsonl", model, amend, workers, loops, repair)
+        output = generate_loop(f"../data/50_{dataset}.jsonl", model, amend, workers, loops, repair)
         copy_to_final(output)
 
     else:
@@ -118,4 +131,4 @@ if __name__ == "__main__":
         amend = argv[2] == "True"
         workers = int(argv[3]) if argc >= 4 else 4
         loops = int(argv[4]) if argc >= 5 else 1
-        generate_loop("../data/mini_minif2f.jsonl", model, amend, workers, loops)
+        generate_loop("../data/mini_miniCTX.jsonl", model, amend, workers, loops)

@@ -2,8 +2,10 @@ from langchain.chat_models import init_chat_model, BaseChatModel
 
 _MODELS = {
   "sonnet": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-  "opus": "us.anthropic.claude-opus-4-5-20251101-v1:0",
-  "gpt": "gpt-5.1",
+  "opus": "us.anthropic.claude-opus-4-6-v1",
+  "gpt": "gpt-5.4",
+  "gpt_mini":"gpt-5.4-mini",
+  "gpt_nano":"gpt-5.4-nano",
   "gemini": "google_genai:gemini-3-flash-preview",
   "gemini_pro": "google_genai:gemini-3.1-pro-preview",
   "gemini_lite": "google_genai:gemini-3.1-flash-lite-preview",
@@ -16,8 +18,7 @@ _MODELS = {
   "qwen": "Qwen/Qwen3.5-397B-A17B",
   "deepseek": "deepseek-ai/DeepSeek-V3.2",
   "glm": "zai-org/GLM-5",
-  "minimax": "MiniMaxAI/MiniMax-M2.1",
-  "kimi": "moonshotai/Kimi-K2-Thinking",
+  "minimax": "MiniMaxAI/MiniMax-M2.5"
 }
 
 _LOCAL_MODELS = {"kimina", "deepseek7b", "goedel"}
@@ -25,7 +26,7 @@ _BEDROCK_MODELS = {"sonnet", "opus"}
 _LIMITED_MODELS = {"gemini_pro", "gemini"}
 _NEBIUS_MODELS = {"nemotron", "qwen", "deepseek", "glm", "minimax", "kimi", "gpt_oss"}
 
-_MAX_TOKENS = 2**15
+_MAX_TOKENS = 2**14
 
 
 def _init_nebius_model(model_id: str, temp: float) -> BaseChatModel:

@@ -91,12 +91,28 @@ class TestCleanupLeanTagBlock:
         response = f"```lean\n-- preamble comment\n{PROOF}\n```"
         assert cleanup(response) == PROOF
 
-    def test_lean_tag_block_ignored_without_theorem(self):
-        # A ```lean block with no theorem/lemma should not be returned by strategy 2;
-        # the function should fall through to later strategies or return the raw response.
+    def test_lean_tag_block_tactic_only_by_simp(self):
+        # A ```lean block with only a tactic body (no theorem/lemma keyword) should
+        # be returned as-is — the model is providing just the proof term.
         response = "```lean\nby simp\n```"
-        # No later strategy will find a theorem either, so raw response is returned
-        assert cleanup(response) == response
+        assert cleanup(response) == "by simp"
+
+    def test_lean_tag_block_tactic_only_by_exact(self):
+        response = "```lean\nby exact rfl\n```"
+        assert cleanup(response) == "by exact rfl"
+
+    def test_lean_tag_block_tactic_only_multiline(self):
+        response = "```lean\nby\n  apply Nat.add_comm\n  simp\n```"
+        assert cleanup(response) == "by\n  apply Nat.add_comm\n  simp"
+
+    def test_lean4_tag_block_tactic_only(self):
+        response = "```lean4\nby omega\n```"
+        assert cleanup(response) == "by omega"
+
+    def test_lean_tag_block_tactic_only_with_explanation(self):
+        # Explanation before the block should not prevent extraction.
+        response = "The key insight is reduction by simp.\n```lean\nby simp [Nat.add_comm]\n```"
+        assert cleanup(response) == "by simp [Nat.add_comm]"
 
     def test_lean_tag_picks_longest(self):
         short = "theorem a : True := trivial"

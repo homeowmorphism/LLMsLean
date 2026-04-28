@@ -27,16 +27,15 @@ python -m pip install -r requirements-mac.txt
 python -m pip install -r requirements.txt
 ```
 
-Lean tooling is also required for verification. Make sure `lake --version` works in your shell before running the pipeline.
+Lean tooling is also required for verification. Install Lean so `lake --version` works in your shell before running the pipeline.
 
-Create local config:
+Create required local paths:
 
 ```bash
-cp .env.example .env
 mkdir -p "data/Final Tests"
 ```
 
-Only fill the environment variables needed for the model provider you plan to use.
+Ensure the root `.env` file contains the credentials for the model provider you plan to use.
 
 Optional validation:
 
@@ -73,7 +72,7 @@ opus: Claude Opus 4.5\
 gpt: GPT 5.1\
 gemini: Google Gemini 3-flash-preview\
 gemini_pro: Google Gemini 3.1-pro-preview\
-gemini_lite: Google Gemini 3.1-flash-lie-preview\
+gemini_lite: Google Gemini 3.1-flash-lite-preview\
 qwen: qwen.qwen3-32b-v1:0\
 gpt_oss: openai/gpt-oss-120b\
 leanstral: mistralai:labs-leanstral-2603\

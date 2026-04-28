@@ -21,10 +21,13 @@ def build_full_code(theorem):
     """
     clean_response = theorem["responses"][-1].replace("lean\n", "").strip()
     formal_stmt = theorem.get("formal_statement", "")
-    match = re.search(r":=\s*by\b", clean_response)
-    if formal_stmt and match:
-        proof_body = clean_response[match.end():].lstrip("\n")
-        return theorem["header"] + formal_stmt + proof_body
+    if formal_stmt:
+        if not re.search(r":=\s*by\s*$", formal_stmt):
+            formal_stmt = formal_stmt.rstrip() + " := by\n"
+        match = re.search(r":=\s*by\b", clean_response) or re.match(r"^by\b", clean_response)
+        if match:
+            proof_body = clean_response[match.end():].lstrip("\n")
+            return theorem["header"] + formal_stmt + proof_body
     return theorem["header"] + clean_response
 
 
