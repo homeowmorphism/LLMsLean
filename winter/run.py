@@ -4,6 +4,8 @@ from verify import check_accuracy_all
 from verify import verify_parallel
 from summary import summarize_jsonl_by_verify
 from sys import argv
+from datetime import datetime
+import glob
 import shutil
 import os
 import jsonlines as jsl
@@ -12,6 +14,33 @@ load_dotenv("../.env")
 
 # TODO: expirement with temp?
 _TEMP = 0.5
+
+def timestamped_path(path):
+    """Append the current local date and time before a file extension."""
+    stem, ext = os.path.splitext(path)
+    return f"{stem} - {datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}{ext}"
+
+
+def output_stem(data, model, at):
+    stem, _ = os.path.splitext(data)
+    return f"{stem}_{model}_{at}"
+
+
+def latest_output_path(data, model, at):
+    """
+    Find the newest matching output for repair mode.
+
+    Supports both legacy names like `..._pass@1.jsonl` and timestamped names
+    like `..._pass@1 - 2026-05-08_14-30-00.jsonl`.
+    """
+    stem = output_stem(data, model, at)
+    candidates = [f"{stem}.jsonl"]
+    candidates.extend(glob.glob(f"{glob.escape(stem)} - *.jsonl"))
+    existing = [path for path in candidates if os.path.exists(path)]
+    if not existing:
+        return candidates[0]
+    return max(existing, key=os.path.getmtime)
+
 
 def generate_loop(data, model, amend, workers=4, loops=1, repair=False):
     """
@@ -24,7 +53,11 @@ def generate_loop(data, model, amend, workers=4, loops=1, repair=False):
                directly on the existing output file (used to resume a run)
     """
     at = f"amend@{loops}" if amend else f"pass@{loops}"
-    output = data.split(".jsonl")[0] + f"_{model}_{at}.jsonl"
+    output = (
+        latest_output_path(data, model, at)
+        if repair
+        else timestamped_path(f"{output_stem(data, model, at)}.jsonl")
+    )
 
     # sub tracks whether the first loop was already consumed by the initial
     # generation from `data`. In repair mode we skip that step and sub stays 0,
@@ -100,7 +133,7 @@ if __name__ == "__main__":
             exit(1)
         model = argv[2]
         workers = int(argv[3]) if argc >= 4 else 4
-        output = f"../data/mini_minif2f_{model}.jsonl"
+        output = timestamped_path(f"../data/mini_minif2f_{model}.jsonl")
         generate_concurrent("../data/mini_minif2f.jsonl", output, model, _TEMP, False, workers)
 
     elif argv[1] == "--verify":
@@ -131,4 +164,4 @@ if __name__ == "__main__":
         amend = argv[2] == "True"
         workers = int(argv[3]) if argc >= 4 else 4
         loops = int(argv[4]) if argc >= 5 else 1
-        generate_loop("../data/mini_miniCTX.jsonl", model, amend, workers, loops)
+        generate_loop("../data/mini_minif2f.jsonl", model, amend, workers, loops)

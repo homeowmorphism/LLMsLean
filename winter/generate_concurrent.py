@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from init_model import init_model
 import threading
 import time
+import random
 
 # prompt stem for a new lean proof
 PROMPT_STEM = """
@@ -31,6 +32,10 @@ _RE_FINAL     = re.compile(r"FINAL`{1,6}(?:lean4?|LEAN4?)?[ \t]*\n?([\S\s]+?)`{1
 _RE_LEAN_TAG  = re.compile(r"```(?:lean4?|LEAN4?)\s*([\S\s]+?)```")
 _RE_ANY_BLOCK = re.compile(r"```\w*\s*([\S\s]+?)```")
 _RE_BARE      = re.compile(r"(?:theorem|lemma)\b[\S\s]+")
+
+_MAX_GENERATION_ATTEMPTS = 4
+_RETRY_BASE_SECONDS = 1.0
+_RETRYABLE_HTTP_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
 thread_local = threading.local()
 
@@ -82,6 +87,60 @@ def cleanup(response):
 def generation_started():
     return
 
+def _extract_status_code(error):
+    response = getattr(error, "response", None)
+    if response is not None:
+        status_code = getattr(response, "status_code", None)
+        if isinstance(status_code, int):
+            return status_code
+        if isinstance(response, dict):
+            status_code = response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if isinstance(status_code, int):
+                return status_code
+
+    status_code = getattr(error, "status_code", None)
+    if isinstance(status_code, int):
+        return status_code
+
+    match = re.search(r"(?:response|status)\s+(\d{3})\b", str(error), re.IGNORECASE)
+    return int(match.group(1)) if match else None
+
+def _is_retryable_generation_error(error):
+    status_code = _extract_status_code(error)
+    if status_code in _RETRYABLE_HTTP_STATUS_CODES:
+        return True
+
+    message = str(error).lower()
+    retryable_terms = (
+        "service unavailable",
+        "temporarily unavailable",
+        "timeout",
+        "timed out",
+        "too many requests",
+        "rate limit",
+        "bad gateway",
+        "gateway timeout",
+    )
+    return any(term in message for term in retryable_terms)
+
+def _invoke_with_retries(model, prompt):
+    for attempt in range(1, _MAX_GENERATION_ATTEMPTS + 1):
+        try:
+            return model.invoke(
+                prompt,
+                # config={"callbacks": [langfuse_handler]}
+            )
+        except Exception as error:
+            if attempt == _MAX_GENERATION_ATTEMPTS or not _is_retryable_generation_error(error):
+                raise
+
+            delay = _RETRY_BASE_SECONDS * (2 ** (attempt - 1)) + random.uniform(0, 0.5)
+            print(
+                f"Retryable generation error on attempt {attempt}/"
+                f"{_MAX_GENERATION_ATTEMPTS}: {error}. Retrying in {delay:.1f}s."
+            )
+            time.sleep(delay)
+
 def process_single_theorem(theorem, model_name, temp, amend):
     # langfuse_handler = CallbackHandler()
     
@@ -108,10 +167,7 @@ def process_single_theorem(theorem, model_name, temp, amend):
     
     try:
         t = time.perf_counter()
-        response = model.invoke(
-            prompt,
-            # config={"callbacks": [langfuse_handler]}
-        )
+        response = _invoke_with_retries(model, prompt)
         t = time.perf_counter() - t
 
         theorem["responses"].append(cleanup(response if type(response) == str else response.text))
